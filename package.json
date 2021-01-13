@@ -1,0 +1,31 @@
+{
+  "name": "advent_2020",
+  "version": "1.0.0",
+  "description": "Advent of Code 2020",
+  "main": "index.js",
+  "scripts": {
+    "createDay": "node createDay",
+    "start": "node index.js",
+    "start:debug": "node --inspect=0.0.0.0:9999 --inspect-brk index.js",
+    "test": "mocha",
+    "test:debug": "mocha --inspect=0.0.0.0:9999 --inspect-brk"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mapolonio/advent_2020.git"
+  },
+  "author": "mapolonio",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mapolonio/advent_2020/issues"
+  },
+  "homepage": "https://github.com/mapolonio/advent_2020#readme",
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "eslint": "^7.14.0",
+    "eslint-config-prettier": "^6.15.0",
+    "eslint-plugin-mocha": "^8.0.0",
+    "mocha": "^8.2.1",
+    "prettier": "^2.2.1"
+  }
+}
