@@ -1,7 +1,7 @@
 {
-  "name": "advent_2020",
+  "name": "advent_2019",
   "version": "1.0.0",
-  "description": "Advent of Code 2020",
+  "description": "Advent of Code 2019",
   "main": "index.js",
   "scripts": {
     "createDay": "node createDay",
@@ -12,14 +12,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mapolonio/advent_2020.git"
+    "url": "git+https://github.com/mapolonio/advent_2019.git"
   },
   "author": "mapolonio",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/mapolonio/advent_2020/issues"
+    "url": "https://github.com/mapolonio/advent_2019/issues"
   },
-  "homepage": "https://github.com/mapolonio/advent_2020#readme",
+  "homepage": "https://github.com/mapolonio/advent_2019#readme",
   "devDependencies": {
     "chai": "^4.2.0",
     "eslint": "^7.14.0",
