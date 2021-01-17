@@ -1,9 +1,8 @@
 const { afterEach, describe, it } = require('mocha');
 const chai = require('chai');
-const rewire = require('rewire');
 const sinon = require('sinon');
 const sinonChai = require('sinon-chai');
-const day5 = rewire('./day5-part-1');
+const day5 = require('./day5-part-1');
 
 chai.use(sinonChai);
 
