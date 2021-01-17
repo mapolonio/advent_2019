@@ -1,3 +1,3 @@
 module.exports = {
-  spec: ['**/*.test.js'],
+  spec: ['./{,!(node_modules)/**}/*.test.js']
 };
