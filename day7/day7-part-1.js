@@ -10,7 +10,11 @@ const processProgram = (program, inputs = []) => {
   const inputStack = [...inputs];
   let currentIndex = 0;
 
-  do {
+  while (result[currentIndex] !== 99) {
+    if (currentIndex >= result.length) {
+      throw new Error('Index out of bounds');
+    }
+
     const { nextIndex, output } = performOperation(
       result,
       currentIndex,
@@ -22,7 +26,7 @@ const processProgram = (program, inputs = []) => {
     }
 
     currentIndex = nextIndex;
-  } while (currentIndex < result.length && result[currentIndex] !== 99);
+  }
 
   return outputs;
 };
@@ -50,25 +54,26 @@ const performOperation = (program, index, inputStack) => {
   const { modes, opNumber } = parseOperation(operation);
   const valueA = getValue(program, index + 1, modes[0]);
   const valueB = getValue(program, index + 2, modes[1]);
+  let address = program[index + 3];
   let nextIndex = index + getIndexJump(opNumber);
   let input;
   let output;
 
   switch (opNumber) {
     case 1:
-      program[program[index + 3]] = valueA + valueB;
+      input = valueA + valueB;
       break;
     case 2:
-      program[program[index + 3]] = valueA * valueB;
+      input = valueA * valueB;
       break;
     case 3:
+      address = program[index + 1];
       input = inputStack.shift();
 
       if (input === undefined) {
         throw new Error('No input values left in stack.');
       }
 
-      program[program[index + 1]] = input;
       break;
     case 4:
       output = program[program[index + 1]];
@@ -86,13 +91,17 @@ const performOperation = (program, index, inputStack) => {
 
       break;
     case 7:
-      program[program[index + 3]] = valueA < valueB ? 1 : 0;
+      input = valueA < valueB ? 1 : 0;
       break;
     case 8:
-      program[program[index + 3]] = valueA === valueB ? 1 : 0;
+      input = valueA === valueB ? 1 : 0;
       break;
     default:
       throw new Error(`Operation "${operation}": not supported`);
+  }
+
+  if (input !== undefined) {
+    program[address] = input;
   }
 
   return { nextIndex, output };
