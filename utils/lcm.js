@@ -40,15 +40,22 @@ const getPrimesLessThan = (number) => {
 };
 
 // Sleeve of Erathostenes
-const removeNonPrimes = (numbers, result = []) => {
-  if (numbers.length === 0) {
-    return result;
+const removeNonPrimes = (numbers) => {
+  const result = [];
+  let remaining = [...numbers];
+
+  if (remaining.length === 0) {
+    return [];
   }
 
-  const [prime] = numbers;
-  const remaining = numbers.slice(1).filter((number) => number % prime !== 0);
+  while (remaining.length) {
+    const [prime] = remaining;
+    result.push(prime);
 
-  return removeNonPrimes(remaining, [...result, prime]);
+    remaining = remaining.slice(1).filter((number) => number % prime !== 0);
+  }
+
+  return result;
 };
 
 const getLCM = (numbers) => {
