@@ -1,4 +1,4 @@
-const [, , scriptArg] = process.argv;
+const [, , scriptArg, ...options] = process.argv;
 
 const run = async () => {
   const [day, part] = scriptArg.split('-');
@@ -7,7 +7,7 @@ const run = async () => {
   console.log(`Running Day ${day} - Part ${part}\n`);
   console.time('Runtime');
 
-  const result = await main();
+  const result = await main(`day${day}/input`, options);
 
   console.log(`Result: ${result}`);
   console.timeEnd('Runtime');
