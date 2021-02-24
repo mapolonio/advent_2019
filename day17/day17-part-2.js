@@ -1,5 +1,5 @@
 const { getInput } = require('../utils');
-const { Writable } = require('stream');
+const { stdout } = process;
 
 const SYMBOLS = Object.freeze({
   EMPTY: '.',
@@ -10,19 +10,27 @@ const SYMBOLS = Object.freeze({
   ROBOT_WEST: '<'
 });
 
-class Robot extends Writable {
+class Robot {
   constructor(program) {
-    super({ objectMode: true });
-
     this.program = [...program];
     this.currentIndex = 0;
     this.inputStack = [];
     this.parameterStack = [];
-    this.output = [];
     this.relativeBase = 0;
-    this.mapReady = false;
-    this.floorMap = [];
+    this.output = '';
+
+    this.currentImage = '';
+    this.floorMap = '';
+    this.mapHeight = 0;
+
     this.collectedDust = 0;
+
+    this.states = Object.freeze({
+      INITIAL: 'initial',
+      PROCESS_INPUT: 'processInput',
+      RUNNING: 'running'
+    });
+    this.currentState = this.states.INITIAL;
   }
 
   async run() {
@@ -34,7 +42,7 @@ class Robot extends Writable {
       await this.performOperation();
     }
 
-    return this.output;
+    this.clearScreen();
   }
 
   async performOperation() {
@@ -171,63 +179,159 @@ class Robot extends Writable {
     return `${input}\n`.split('').map((c) => c.charCodeAt());
   }
 
+  setConfig({ mainRoutine, functions, showVideo }) {
+    this.inputStack.push(...this.encodeInput(mainRoutine));
+
+    for (const func of functions) {
+      this.inputStack.push(...this.encodeInput(func));
+    }
+
+    this.inputStack.push(...this.encodeInput(showVideo));
+    this.showVideo = showVideo === 'y';
+  }
+
   async processInput(mode) {
     const address = this.getWriteAddress(this.currentIndex + 1, mode);
     const input = await this.getInput();
     const char = String.fromCharCode(input);
-
-    if (char === '\n') {
-      console.log(this.parameterStack.join(''));
-      this.parameterStack = [];
-      await this._waitMs(500);
-    } else {
-      this.parameterStack.push(char);
-    }
+    stdout.write(char);
 
     return { address, input };
   }
 
   async processOutput(output) {
     const char = String.fromCharCode(output);
+    this.collectedDust = output;
+    this.output += char;
 
-    if (char === '\n') {
-      const line = this.output.join('');
+    switch (this.currentState) {
+      case this.states.PROCESS_INPUT:
+        stdout.write(char);
+        break;
+      case this.states.RUNNING:
+        if (this.showVideo && this.output.slice(-2) === '\n\n') {
+          await this.displayImage();
+        }
 
-      console.log(line);
+        break;
+      default:
+      // NOOP
+    }
 
-      if (!this.mapReady && line.length > 1) {
-        this.floorMap.push(line);
-      }
-
-      if (this.output.length === 0) {
-        this.mapReady = true;
-
-        await this._waitMs(100);
-      }
-
-      this.output = [];
-    } else {
-      this.output.push(char);
-      this.collectedDust = output;
+    if (this.output.slice(-2) === '\n\n') {
+      this.goNextState();
+      this.output = '';
     }
   }
 
+  goNextState() {
+    switch (this.currentState) {
+      case this.states.INITIAL:
+        this.floorMap = this.output.slice(0, -2);
+        this.currentState = this.states.PROCESS_INPUT;
+        break;
+      case this.states.PROCESS_INPUT:
+        this.currentState = this.states.RUNNING;
+        break;
+      case this.states.RUNNING:
+        this.currentState = this.states.RUNNING;
+        break;
+      default:
+        throw new Error(`No state match found for ${this.currentState}`);
+    }
+  }
+
+  async displayImage() {
+    const floorMap = this.output.slice(0, -2);
+    const image = this.renderImage(floorMap);
+
+    stdout.write(image);
+    stdout.cursorTo(0);
+    stdout.moveCursor(0, -30);
+
+    await this._waitMs(20);
+  }
+
+  clearScreen() {
+    if (!this.showVideo) {
+      return;
+    }
+
+    stdout.cursorTo(0);
+    stdout.moveCursor(0, 30);
+    stdout.write('\n\n');
+  }
+
+  renderImage(floorMap) {
+    const floorMatrix = floorMap.split('\n');
+    const robotPosition = this.getRobotPosition(floorMatrix);
+    const image = [];
+
+    for (
+      let row = robotPosition.row - 15;
+      row <= robotPosition.row + 15;
+      row += 1
+    ) {
+      let line = '';
+
+      for (
+        let col = robotPosition.col - 15;
+        col <= robotPosition.col + 15;
+        col += 1
+      ) {
+        let char = floorMatrix[row] && floorMatrix[row][col];
+
+        switch (char) {
+          case undefined:
+          case SYMBOLS.EMPTY:
+            char = ' ';
+            break;
+          case SYMBOLS.FLOOR:
+            char = '·';
+            break;
+          default:
+          // NOOP
+        }
+
+        line += char;
+      }
+
+      image.push(line);
+    }
+
+    return image.join('\n');
+  }
+
+  getRobotPosition(floorMatrix) {
+    const { ROBOT_NORTH, ROBOT_SOUTH, ROBOT_EAST, ROBOT_WEST } = SYMBOLS;
+    const robotPositions = [ROBOT_NORTH, ROBOT_SOUTH, ROBOT_EAST, ROBOT_WEST];
+
+    for (let row = 0; row < floorMatrix.length; row += 1) {
+      for (const direction of robotPositions) {
+        const index = floorMatrix[row].indexOf(direction);
+
+        if (index !== -1) {
+          return {
+            row,
+            col: index
+          };
+        }
+      }
+    }
+
+    throw new Error('Robot not found');
+  }
+
   async scanArea() {
-    while (!this.mapReady) {
+    while (!this.floorMap) {
       await this._waitMs(0);
     }
 
-    return this.floorMap;
+    return this.floorMap.split('\n');
   }
 
   _waitMs(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-
-  _write(value, encoding, callback) {
-    this.inputStack.push(...this.encodeInput(value));
-
-    callback();
   }
 }
 
@@ -445,8 +549,6 @@ const isFloor = (floorMap, { row, col }) => {
 };
 
 const extractStartNode = (floorMap, nodes) => {
-  const { ROBOT_NORTH, ROBOT_SOUTH, ROBOT_EAST, ROBOT_WEST } = SYMBOLS;
-  const robotPositions = [ROBOT_NORTH, ROBOT_SOUTH, ROBOT_EAST, ROBOT_WEST];
   let node;
   let i = 0;
   let robotDirection;
@@ -455,7 +557,7 @@ const extractStartNode = (floorMap, nodes) => {
     node = nodes[i];
     const mapContent = floorMap[node.row][node.col];
 
-    if (robotPositions.includes(mapContent)) {
+    if (isRobot(mapContent)) {
       robotDirection = mapContent;
       break;
     }
@@ -466,6 +568,13 @@ const extractStartNode = (floorMap, nodes) => {
   nodes.splice(i, 1);
 
   return { node, robotDirection };
+};
+
+const isRobot = (char) => {
+  const { ROBOT_NORTH, ROBOT_SOUTH, ROBOT_EAST, ROBOT_WEST } = SYMBOLS;
+  const robotPositions = [ROBOT_NORTH, ROBOT_SOUTH, ROBOT_EAST, ROBOT_WEST];
+
+  return robotPositions.includes(char);
 };
 
 const extractNextNode = (floorMap, currentNode, nodes) => {
@@ -581,21 +690,21 @@ const getNextDirection = (direction) => {
 const main = async (inputPath = 'day17/input', options) => {
   const program = await getInput(inputPath, parseInput);
   const robot = new Robot(program);
-  const videoFeed = options.includes('--video') ? 'y' : 'n';
+  const showVideo = options.includes('--showVideo') ? 'y' : 'n';
 
   const robotsSaved = robot.run();
   const floorMap = await robot.scanArea();
   const { mainRoutine, A, B, C } = buildRoutine(floorMap);
 
-  robot.write(mainRoutine);
-  robot.write(A);
-  robot.write(B);
-  robot.write(C);
-  robot.write(videoFeed);
+  robot.setConfig({
+    mainRoutine,
+    functions: [A, B, C],
+    showVideo
+  });
 
   await robotsSaved;
 
-  return robot.collectedDust;
+  return `Total dust collected => ${robot.collectedDust}`;
 };
 
 module.exports = { main, removeSubArray };
