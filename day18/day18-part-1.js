@@ -56,6 +56,10 @@ class CaveMap {
     this.inspectCave();
   }
 
+  get width() {
+    return this.caveMap[0].length;
+  }
+
   inspectCave() {
     this.elementsMap = {};
     this.keys = new Set();
@@ -82,6 +86,9 @@ class CaveMap {
         }
       }
     }
+
+    this.positionQty = this.caveMap.length + this.width;
+    this.allKeysValue = Math.pow(2, this.keys.size) - 1;
   }
 
   findShortestPath(
@@ -189,7 +196,13 @@ class CaveMap {
   }
 
   mainCacheKey(position, currentKeys, takenSteps) {
-    return `${this.getKey(position)}-${currentKeys}-${takenSteps}`;
+    // This is a way of enumerating coordinates (x, y, z) in a cube
+    const width = this.positionQty;
+    const height = this.allKeysValue;
+    const depth = width * height * takenSteps;
+    const row = width * currentKeys;
+
+    return depth + row + this.getKey(position);
   }
 
   cacheKey(position, currentKeys) {
@@ -197,7 +210,7 @@ class CaveMap {
   }
 
   getKey({ row, col }) {
-    return `${row},${col}`;
+    return row * this.width + col;
   }
 
   isEntrance(char) {
