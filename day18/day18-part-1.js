@@ -200,7 +200,7 @@ class CaveMap {
     const width = this.positionQty;
     const height = this.allKeysValue;
     const depth = width * height * takenSteps;
-    const row = width * currentKeys;
+    const row = width * currentKeys.bitArray;
 
     return depth + row + this.getKey(position);
   }
