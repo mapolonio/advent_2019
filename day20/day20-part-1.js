@@ -16,38 +16,33 @@ class Maze {
         const char = this.mazeMap[r][c];
         const rightChar = this.mazeMap[r][c + 1];
         const bottomChar = this.mazeMap[r + 1][c];
-        let rightLabel = `${char}${rightChar}`;
-        let bottomLabel = `${char}${bottomChar}`;
 
-        if (this.isLetter(char)) {
+        if (!this.isLetter(char)) {
+          continue;
+        }
+
+        if (this.isLetter(rightChar) || this.isLetter(bottomChar)) {
+          let label = char;
+          let portalRow = r;
+          let portalCol = c;
+
           if (this.isLetter(rightChar)) {
-            rightLabel =
-              `${rightLabel}-1` in this.portalMap
-                ? `${rightLabel}-2`
-                : `${rightLabel}-1`;
-
-            const portalCol = this.mazeMap[r][c - 1] === '.' ? c - 1 : c + 2;
-            const portalPosition = { row: r, col: portalCol };
-            const key = this.positionKey(portalPosition);
-
-            this.portalMap[rightLabel] = portalPosition;
-            this.positionToPortalMap[key] = rightLabel;
+            label += rightChar;
+            portalCol = this.mazeMap[r][c - 1] === '.' ? c - 1 : c + 2;
           } else if (this.isLetter(bottomChar)) {
-            bottomLabel =
-              `${bottomLabel}-1` in this.portalMap
-                ? `${bottomLabel}-2`
-                : `${bottomLabel}-1`;
-
-            const portalRow =
+            label += bottomChar;
+            portalRow =
               this.mazeMap[r + 2] && this.mazeMap[r + 2][c] === '.'
                 ? r + 2
                 : r - 1;
-            const portalPosition = { row: portalRow, col: c };
-            const key = this.positionKey(portalPosition);
-
-            this.portalMap[bottomLabel] = portalPosition;
-            this.positionToPortalMap[key] = bottomLabel;
           }
+
+          label = `${label}-1` in this.portalMap ? `${label}-2` : `${label}-1`;
+          const portalPosition = { row: portalRow, col: portalCol };
+          const key = this.positionKey(portalPosition);
+
+          this.portalMap[label] = portalPosition;
+          this.positionToPortalMap[key] = label;
         }
       }
     }
